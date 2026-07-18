@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Projet 2 - Acquisition d'instruments
 
 ## Description
@@ -27,3 +28,6 @@ projet_2/
 ```bash
 python app.py
 ```
+=======
+# Banc_test
+>>>>>>> 66d5d57673c61a8f7e04fd3e1d20b12512192c8b
