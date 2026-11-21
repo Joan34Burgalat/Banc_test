@@ -76,7 +76,7 @@ Permet de lire la configuration mémorisé de l'état d'un channel choisit par l
 }
 
 // Enregistrer les paramètres du canal sélectionné
-function saveChannel() {
+async function saveChannel() {
 /*
 Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
     Arg : 
@@ -110,14 +110,44 @@ Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
         return; // Si tout va bien on continue le code sinon on arrête tout 
     }
 
-    channels[Canaux.value] = config;  // Ici on affecte à l'élément de la liste les paramètre sélectionner par l'utilisateur qui sont dans config
-    // Fonctionnalité d'affichage dans l'IHM
-    status.textContent =
-        "CH" + Canaux.value +
-        " enregistré — " +
-        (config.enabled ? "ON" : "OFF");
+const apiConfig = {
+    waveform: config.Forme_du_signal,
+    frequency: config.frequence,
+    amplitude: config.amplitude,
+    offset: config.decallage,
+    phase: config.phase,
+    enabled: config.enabled
+};
 
-    console.log("Configurations :", channels);
+try {
+    const response = await fetch(
+        `/channels/${Canaux.value}`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(apiConfig)
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    channels[Canaux.value] = config;
+
+    status.textContent =
+        `CH${Canaux.value} enregistré sur le serveur`;
+
+    console.log("Réponse API :", result);
+
+} catch (error) {
+    status.textContent =
+        `Erreur de communication : ${error.message}`;
+}
 }
 
 // Événements
