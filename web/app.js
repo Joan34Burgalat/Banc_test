@@ -76,7 +76,7 @@ Permet de lire la configuration mémorisé de l'état d'un channel choisit par l
 }
 
 // Enregistrer les paramètres du canal sélectionné
-async function saveChannel() {
+async function loadChannel() {
 /*
 Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
     Arg : 
@@ -87,68 +87,42 @@ Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
         phase.value : stock la valeur de la phase choisit par l'utilisateur ,
         enabled.checked : stock l'état de la sortie choisit par l'utilisateur  
 */
-// On récupère les valeurs actuellement affichées  
-    const config = {
-        Forme_du_signal: Forme_du_signal.value,
-        frequence: Number(frequence.value),
-        amplitude: Number(amplitude.value),
-        decallage: Number(decallage.value),
-        phase: Number(phase.value),
-        enabled: enabled.checked
-    };
+    const selectedChannel = Canaux.value;
 
-    if (
-        !Number.isFinite(config.frequence) ||
-        !Number.isFinite(config.amplitude) ||
-        !Number.isFinite(config.decallage) ||
-        !Number.isFinite(config.phase) ||
-        config.frequence < 0 ||  // Vérifie si la fréquence mise est négative
-        config.amplitude < 0 ||  // Vérifie si l'amplitude mise est négative
-        (config.Forme_du_signal !== "dc" && config.frequence === 0) // Vérifie si la forme d'onde est différente de dc et fréquence un entier nul 
-    ) {
-        status.textContent = "Configuration invalide.";  // Si une des trois conditions du haut est présente dans l'IHM alors on renvoie Configuration invalide
-        return; // Si tout va bien on continue le code sinon on arrête tout 
-    }
+    try {
+        const response = await fetch(
+            `/channels/${selectedChannel}`
+        );
 
-const apiConfig = {
-    waveform: config.Forme_du_signal,
-    frequency: config.frequence,
-    amplitude: config.amplitude,
-    offset: config.decallage,
-    phase: config.phase,
-    enabled: config.enabled
-};
-
-try {
-    const response = await fetch(
-        `/channels/${Canaux.value}`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(apiConfig)
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
         }
-    );
 
-    if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const config = await response.json();
+
+        // Éviter d'afficher la réponse d'un ancien canal
+        if (Canaux.value !== selectedChannel) {
+            return;
+        }
+
+        // Mise à jour de l'IHM avec les valeurs Python
+        Forme_du_signal.value = config.waveform;
+        frequence.value = config.frequency;
+        amplitude.value = config.amplitude;
+        decallage.value = config.offset;
+        phase.value = config.phase;
+        enabled.checked = config.enabled;
+
+        status.textContent =
+            `CH${selectedChannel} chargé depuis Python`;
+
+    } catch (error) {
+
+        status.textContent =
+            `Erreur de chargement : ${error.message}`;
     }
-
-    const result = await response.json();
-
-    channels[Canaux.value] = config;
-
-    status.textContent =
-        `CH${Canaux.value} enregistré sur le serveur`;
-
-    console.log("Réponse API :", result);
-
-} catch (error) {
-    status.textContent =
-        `Erreur de communication : ${error.message}`;
 }
-}
+
 
 // Événements
 Canaux.addEventListener("change", loadChannel);   // On utilise le design pattern Listener pour voir si l'utilisateur changes des paramètres du channel
