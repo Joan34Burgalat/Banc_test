@@ -69,3 +69,9 @@ button:hover {
     margin-top: 20px;
     color: #81c784;
 }
+
+input[type="checkbox"] {
+    width: auto;
+    margin-top: 8px;
+    accent-color: #4fc3f7;
+}
