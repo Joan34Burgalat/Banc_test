@@ -1,0 +1,51 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Test WebSocket BANC_TEST</title>
+</head>
+<body>
+
+    <h2>Test WebSocket - Canal 1</h2>
+    <button id="connect">Connecter et recevoir le signal</button>
+    <pre id="result">En attente...</pre>
+
+    <script>
+        const button = document.getElementById("connect");
+        const result = document.getElementById("result");
+
+        button.addEventListener("click", () => {
+
+            const ws = new WebSocket(
+                "ws://127.0.0.1:8000/ws/signals/1"
+            );
+
+            ws.onopen = () => {
+                result.textContent = "WebSocket connecté\n";
+                ws.send("generate");
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                result.textContent +=
+                    `Canal : ${data.channel}\n` +
+                    `Échantillons : ${data.voltage.length}\n` +
+                    `Premières tensions : ${data.voltage.slice(0, 5)}\n`;
+
+                ws.close();
+            };
+
+            ws.onerror = () => {
+                result.textContent += "Erreur WebSocket\n";
+            };
+
+            ws.onclose = () => {
+                result.textContent += "Connexion fermée\n";
+            };
+        });
+    </script>
+
+</body>
+</html>

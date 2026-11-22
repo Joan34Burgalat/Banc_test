@@ -1,7 +1,5 @@
 /*
 On déclare dans les constatntes les éléments constitutif de notre IHM web
-La constante channels est un "dictionnaire" qui permet ce gérer les channel indépendemment de sorte à faire 4 configurations différentes à l'aide de la fonction createDefaultChannel.
-La fonction createDefaultChannel donne un état par défaut aux channel de l'IHM ce qui permet d'initialiser notre élément de l'IHM 
 La fonction loadChannel récupère ou stock les paramètres sélectionnés par l'utilisateur
 La fonction saveChannel sauvegarde les paramètre du channel choisit par l'utilisateur de manière à ce que le changement de channel ne change pas les paramètres
 */
@@ -21,65 +19,11 @@ const enabled = document.getElementById("enabled");          // On gère l'activ
 const button = document.getElementById("apply");
 const status = document.getElementById("status");
 
-// Configuration indépendante des quatre canaux  (version js du dictionnaire)
-const channels = {
-    1: createDefaultChannel(),
-    2: createDefaultChannel(),
-    3: createDefaultChannel(),
-    4: createDefaultChannel()
-};
-
-// Configuartion de l'IHM par défaut
-function createDefaultChannel() {
-/*
-Gestion  de l'état par défaut d'un canal
-    Propriété retourné de l'objet canal : 
-        Forme_du_signal : forme du signal
-        frequence : valeur de la fréquence en Hz,
-        amplitude: valeur de l'amplitude en V,
-        decallage: Décallage en V,
-        phase: phase en ° j'imagine que ça correspond à la phase d'un courant électrique ,
-        enabled: état de la sortie activé ou désactivé
-*/
-    return {
-        Forme_du_signal: "sine",
-        frequence : 1000,
-        amplitude : 5,
-        decallage : 0,
-        phase: 0,
-        enabled: false
-    };
-}
-
 // Afficher les paramètres d'un canal
-function loadChannel() {
+async function loadChannel() {
 /*
 Permet de lire la configuration mémorisé de l'état d'un channel choisit par l'utilisateur et de l'afficher 
     Propriété retourné de l'objet channel : 
-        const config : correspond au channel choisit dans l'IHM c'est l'élément de la liste channels
-        frequence.value : stock la valeur de la fréquence choisit par l'utilisateur ,
-        amplitude.value : stock la valeur de l'amplitude choisit par l'utilisateur ,
-        decallage.value : stock la valeur de l'offset choisit par l'utilisateur ,
-        phase.value : stock la valeur de la phase choisit par l'utilisateur ,
-        enabled.checked : stock l'état de la sortie choisit par l'utilisateur  
-*/
-    const config = channels[Canaux.value];
-
-    Forme_du_signal.value = config.Forme_du_signal;
-    frequence.value = config.frequence;
-    amplitude.value = config.amplitude;
-    decallage.value = config.decallage;
-    phase.value = config.phase;
-    enabled.checked = config.enabled;
-
-    status.textContent = "CH" + Canaux.value + " chargé.";
-}
-
-// Enregistrer les paramètres du canal sélectionné
-async function loadChannel() {
-/*
-Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
-    Arg : 
         const config : correspond au channel choisit dans l'IHM c'est l'élément de la liste channels
         frequence.value : stock la valeur de la fréquence choisit par l'utilisateur ,
         amplitude.value : stock la valeur de l'amplitude choisit par l'utilisateur ,
@@ -100,12 +44,12 @@ Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
 
         const config = await response.json();
 
-        // Éviter d'afficher la réponse d'un ancien canal
+        // Vérifier que l'utilisateur n'a pas changé de canal
         if (Canaux.value !== selectedChannel) {
             return;
         }
 
-        // Mise à jour de l'IHM avec les valeurs Python
+        // Afficher les valeurs provenant de Python
         Forme_du_signal.value = config.waveform;
         frequence.value = config.frequency;
         amplitude.value = config.amplitude;
@@ -117,11 +61,82 @@ Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
             `CH${selectedChannel} chargé depuis Python`;
 
     } catch (error) {
-
         status.textContent =
             `Erreur de chargement : ${error.message}`;
     }
 }
+
+
+// Enregistrer les paramètres du canal sélectionné
+async function saveChannel() {
+/*
+Permet de sauvegarder l'état d'un channel choisit par l'utilisateur
+    Arg : 
+        const config : correspond au channel choisit dans l'IHM c'est l'élément de la liste channels
+        frequence.value : stock la valeur de la fréquence choisit par l'utilisateur ,
+        amplitude.value : stock la valeur de l'amplitude choisit par l'utilisateur ,
+        decallage.value : stock la valeur de l'offset choisit par l'utilisateur ,
+        phase.value : stock la valeur de la phase choisit par l'utilisateur ,
+        enabled.checked : stock l'état de la sortie choisit par l'utilisateur  
+*/
+
+    // Mémoriser le canal sélectionné
+    const selectedChannel = Canaux.value;
+
+    // Récupérer les paramètres de l'IHM
+    const config = {
+        waveform: Forme_du_signal.value,
+        frequency: Number(frequence.value),
+        amplitude: Number(amplitude.value),
+        offset: Number(decallage.value),
+        phase: Number(phase.value),
+        enabled: enabled.checked
+    };
+
+    // Vérification des paramètres
+    if (
+        !Number.isFinite(config.frequency) ||
+        !Number.isFinite(config.amplitude) ||
+        !Number.isFinite(config.offset) ||
+        !Number.isFinite(config.phase) ||
+        config.frequency < 0 ||
+        config.amplitude < 0 ||
+        (config.waveform !== "dc" && config.frequency === 0)
+    ) {
+        status.textContent = "Configuration invalide.";
+        return;
+    }
+
+    try {
+        // Envoyer les paramètres à FastAPI
+        const response = await fetch(
+            `/channels/${selectedChannel}`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(config)
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        status.textContent =
+            `CH${selectedChannel} enregistré sur le serveur`;
+
+        console.log("Réponse API :", result);
+
+    } catch (error) {
+        status.textContent =
+            `Erreur de communication : ${error.message}`;
+    }
+}
+
 
 
 // Événements

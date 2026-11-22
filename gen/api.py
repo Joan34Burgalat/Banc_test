@@ -1,11 +1,14 @@
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, model_validator
-
+import asyncio
 from gen.generator import SignalGenerator
 from pathlib import Path
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+from fastapi import WebSocket, WebSocketDisconnect
+import asyncio
 
 
 app = FastAPI(title="BANC_TEST - GEN API")
@@ -88,3 +91,34 @@ def configure_channel(
             status_code=404,
             detail=str(error)
         )
+
+
+@app.websocket("/ws/signals/{channel}")
+async def websocket_signal(websocket: WebSocket, channel: int):
+
+    # Vérification du numéro de canal
+    if channel not in generator.channels:
+        await websocket.close(code=1008)
+        return
+
+    # Acceptation de la connexion WebSocket
+    await websocket.accept()
+
+    try:
+        while True:
+
+            # Attendre une demande du navigateur
+            await websocket.receive_text()
+
+            # Génération des échantillons
+            t, y = generator.generate_signal(channel)
+
+            # Transmission des données au navigateur
+            await websocket.send_json({
+                "channel": channel,
+                "time": t.tolist(),
+                "voltage": y.tolist()
+            })
+
+    except WebSocketDisconnect:
+        print(f"WebSocket CH{channel} déconnecté")
