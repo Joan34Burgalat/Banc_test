@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
+from mes.signal_processing import compute_fft
 
 
 app = FastAPI(title="BANC_TEST - GEN API")
@@ -148,3 +149,31 @@ async def websocket_signal(websocket: WebSocket, channel: int):
 @app.get("/mes")
 def mes_home():
     return FileResponse(WEB_DIR / "mes" / "mes.html")
+
+class FFTRequest(BaseModel):
+    voltage: list[float]
+    sample_rate: float = Field(gt=0)
+    window: str = "rectangular"
+
+
+@app.post("/mes/fft")
+def calculate_fft(request: FFTRequest):
+
+    try:
+        frequencies, amplitudes = compute_fft(
+            request.voltage,
+            request.sample_rate,
+            request.window
+        )
+
+        return {
+            "frequencies": frequencies.tolist(),
+            "amplitudes": amplitudes.tolist()
+        }
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error)
+        )
+

@@ -5,9 +5,14 @@ const connect = document.getElementById("connect");
 const disconnect = document.getElementById("disconnect");
 const status = document.getElementById("status");
 const samples = document.getElementById("samples");
-
-// Récupération du canvas
+const fftWindow = document.getElementById("fftWindow");
 const canvas = document.getElementById("signalChart");
+const fftSize = document.getElementById("fftSize");
+
+let lastFFTUpdate = 0;
+let fftInProgress = false;
+let fftBuffer = [];
+let selectedFFTSize = Number(fftSize.value);
 
 // Création de l'oscilloscope
 const signalChart = new Chart(canvas, {
@@ -48,6 +53,50 @@ const signalChart = new Chart(canvas, {
     }
 });
 
+
+    // Initialisation de l'analyseur spectral
+    const fftCanvas = document.getElementById("fftChart");
+
+    const fftChart = new Chart(fftCanvas, {
+    type: "line",
+
+    data: {
+        datasets: [{
+            label: "Amplitude spectrale (V)",
+            data: [],
+            borderColor: "#f4a261",
+            borderWidth: 2,
+            pointRadius: 0
+        }]
+    },
+
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+
+        scales: {
+            x: {
+                type: "linear",
+                title: {
+                    display: true,
+                    text: "Fréquence (Hz)"
+                },
+                min: 0,
+                max: 10000
+            },
+
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: "Amplitude (V)"
+                }
+            }
+        }
+    }
+    });
+
 console.log("Oscilloscope MES initialisé");
 
 
@@ -77,11 +126,35 @@ connect.addEventListener("click", () => {
     ws.onopen = () => {
         status.textContent = `CH${selectedChannel} connecté`;
         disconnect.disabled = false;
+        fftBuffer = [];
+        lastFFTUpdate = 0;
+        totalSamples = 0;
+        samples.textContent = "Échantillons reçus : 0";
     };
 
     ws.onmessage = (event) => {
 
         const data = JSON.parse(event.data);
+        fftBuffer.push(...data.voltage);
+
+        // Conserver les N derniers échantillons
+        if (fftBuffer.length > selectedFFTSize) {
+            fftBuffer = fftBuffer.slice(-selectedFFTSize);
+        }
+
+        // Limiter uniquement la fréquence des calculs FFT
+        const now = performance.now();
+
+        if (
+            fftBuffer.length === selectedFFTSize &&
+            now - lastFFTUpdate >= 200 &&
+            !fftInProgress
+            ) 
+        {
+            lastFFTUpdate = now;
+            console.log("FFT demandée :", fftBuffer.length);
+            updateFFT([...fftBuffer]);
+        }
         // Calculer les mesures sur le bloc reçu
         calculateMeasurements(data.voltage);
         // Conversion des secondes en millisecondes
@@ -109,7 +182,6 @@ connect.addEventListener("click", () => {
 
     ws.onclose = (event) => {
         status.textContent = `Déconnecté (code ${event.code})`;
-
         ws = null;
         connect.disabled = false;
         disconnect.disabled = true;
@@ -122,6 +194,18 @@ disconnect.addEventListener("click", () => {
     if (ws !== null) {
         ws.close(1000, "Déconnexion utilisateur");
     }
+});
+
+fftSize.addEventListener("change", () => {
+
+    selectedFFTSize = Number(fftSize.value);
+
+    // Réinitialisation pour éviter de mélanger les acquisitions
+    fftBuffer = [];
+
+    console.log(
+        `Nouvelle taille FFT : ${selectedFFTSize} échantillons`
+    );
 });
 
 
@@ -157,3 +241,53 @@ function calculateMeasurements(voltage) {
     document.getElementById("vrms").textContent = rms.toFixed(3);
 }
 
+
+// Envoi des échantillons vers Python pour analyse FFT
+async function updateFFT(voltage) {
+    console.log("FFT demandée :", voltage.length);
+    if (fftInProgress) {
+        return;
+    }
+
+    fftInProgress = true;
+
+    try {
+        const response = await fetch("/mes/fft", {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                voltage: voltage,
+                sample_rate: 100000,
+                window: fftWindow.value
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("FFT reçue :", result.frequencies.length);
+
+        // Construction des points du spectre
+        const points = result.frequencies.map((frequency, i) => ({
+            x: frequency,
+            y: result.amplitudes[i]
+        }));
+
+        // Mise à jour de l'analyseur spectral
+        fftChart.data.datasets[0].data = points;
+        fftChart.update("none");
+
+    } catch (error) {
+        console.error("Erreur FFT :", error);
+    }
+
+    finally {
+        fftInProgress = false;
+    }
+}
