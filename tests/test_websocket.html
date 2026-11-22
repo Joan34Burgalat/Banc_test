@@ -12,39 +12,82 @@
     <pre id="result">En attente...</pre>
 
     <script>
-        const button = document.getElementById("connect");
-        const result = document.getElementById("result");
+        
+const button = document.getElementById("connect");
+const result = document.getElementById("result");
 
-        button.addEventListener("click", () => {
+// Référence vers la connexion WebSocket
+let ws = null;
 
-            const ws = new WebSocket(
-                "ws://127.0.0.1:8000/ws/signals/1"
-            );
+// Compteur de blocs reçus
+let blockCount = 0;
 
-            ws.onopen = () => {
-                result.textContent = "WebSocket connecté\n";
-                ws.send("generate");
-            };
+button.addEventListener("click", () => {
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data);
+    // Empêcher plusieurs connexions simultanées
+    if (ws !== null) {
+        return;
+    }
 
-                result.textContent +=
-                    `Canal : ${data.channel}\n` +
-                    `Échantillons : ${data.voltage.length}\n` +
-                    `Premières tensions : ${data.voltage.slice(0, 5)}\n`;
+    // Désactiver le bouton pendant le test
+    button.disabled = true;
 
-                ws.close();
-            };
+    // Réinitialiser le compteur et l'affichage
+    blockCount = 0;
+    result.textContent = "Connexion en cours...\n";
 
-            ws.onerror = () => {
-                result.textContent += "Erreur WebSocket\n";
-            };
+    // Création de la connexion WebSocket
+    ws = new WebSocket(
+        "ws://127.0.0.1:8000/ws/signals/1"
+    );
 
-            ws.onclose = () => {
-                result.textContent += "Connexion fermée\n";
-            };
-        });
+    // Connexion établie
+    ws.onopen = () => {
+        result.textContent = "WebSocket connecté\n";
+    };
+
+    // Réception des échantillons
+    ws.onmessage = (event) => {
+
+        const data = JSON.parse(event.data);
+
+        blockCount++;
+
+        result.textContent =
+            `WebSocket connecté\n` +
+            `Canal : ${data.channel}\n` +
+            `Blocs reçus : ${blockCount}\n` +
+            `Échantillons par bloc : ${data.voltage.length}\n` +
+            `Temps initial : ${data.time[0].toFixed(4)} s\n` +
+            `Temps final : ${data.time[data.time.length - 1].toFixed(4)} s\n` +
+            `Premières tensions : ${data.voltage.slice(0, 5)}\n`;
+
+        // Arrêter après 10 blocs
+        if (blockCount >= 10) {
+            ws.close(1000, "Test terminé");
+        }
+    };
+
+    // Gestion des erreurs
+    ws.onerror = (error) => {
+        console.error("Erreur WebSocket :", error);
+        result.textContent += "Erreur WebSocket\n";
+    };
+
+    // Fermeture de la connexion
+    ws.onclose = (event) => {
+
+        result.textContent +=
+            `Connexion fermée (code ${event.code})\n`;
+
+        // Libérer la connexion
+        ws = null;
+
+        // Réactiver le bouton
+        button.disabled = false;
+    };
+});
+
     </script>
 
 </body>

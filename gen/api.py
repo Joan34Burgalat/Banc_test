@@ -6,7 +6,7 @@ from gen.generator import SignalGenerator
 from pathlib import Path
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-
+from starlette.websockets import WebSocketDisconnect
 from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
 
@@ -93,32 +93,55 @@ def configure_channel(
         )
 
 
+
 @app.websocket("/ws/signals/{channel}")
 async def websocket_signal(websocket: WebSocket, channel: int):
 
-    # Vérification du numéro de canal
+    # Vérifier que le canal existe
     if channel not in generator.channels:
         await websocket.close(code=1008)
         return
 
-    # Acceptation de la connexion WebSocket
+    # Accepter la connexion WebSocket
     await websocket.accept()
+
+    # Paramètres d'acquisition
+    duration = 0.01
+    sample_rate = 100000
+
+    # Compteur d'échantillons
+    sample_index = 0
 
     try:
         while True:
 
-            # Attendre une demande du navigateur
-            await websocket.receive_text()
+            # Calcul du temps initial du bloc
+            start_time = sample_index / sample_rate
 
-            # Génération des échantillons
-            t, y = generator.generate_signal(channel)
+            # Générer le bloc suivant
+            t, y = generator.generate_signal(
+                channel,
+                duration=duration,
+                sample_rate=sample_rate,
+                start_time=start_time
+            )
 
-            # Transmission des données au navigateur
+            # Envoyer les échantillons au navigateur
             await websocket.send_json({
                 "channel": channel,
                 "time": t.tolist(),
                 "voltage": y.tolist()
             })
 
+            # Avancer le compteur temporel
+            sample_index += len(y)
+
+            # Attendre avant le prochain bloc
+            await asyncio.sleep(duration)
+
     except WebSocketDisconnect:
         print(f"WebSocket CH{channel} déconnecté")
+
+    except (RuntimeError, OSError) as error:
+        print(f"Connexion CH{channel} terminée : {error}")
+
