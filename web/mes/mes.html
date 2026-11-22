@@ -1,0 +1,54 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>BANC_TEST - MES</title>
+
+    <link rel="stylesheet" href="/static/mes/mes.css">
+
+    <!-- Bibliothèque graphique -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Notre code JavaScript -->
+    <script src="/static/mes/mes.js" defer></script>
+</head>
+
+<body>
+
+    <header>
+        <h1>BANC_TEST - MES</h1>
+        <p>Oscilloscope virtuel</p>
+    </header>
+
+    <main>
+        <section class="controls">
+
+            <label for="channel">Canal :</label>
+
+            <select id="channel">
+                <option value="1">CH1</option>
+                <option value="2">CH2</option>
+                <option value="3">CH3</option>
+                <option value="4">CH4</option>
+            </select>
+
+            <button id="connect">Connecter</button>
+            <button id="disconnect" disabled>Déconnecter</button>
+
+            <p id="status">Déconnecté</p>
+            <p id="samples">Échantillons reçus : 0</p>
+
+        </section>
+
+        <section class="oscilloscope">
+            <h2>Oscilloscope</h2>
+            <canvas id="signalChart"></canvas>
+        </section>
+    </main>
+
+</body>
+</html>

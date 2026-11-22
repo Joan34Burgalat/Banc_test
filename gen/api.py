@@ -145,3 +145,6 @@ async def websocket_signal(websocket: WebSocket, channel: int):
     except (RuntimeError, OSError) as error:
         print(f"Connexion CH{channel} terminée : {error}")
 
+@app.get("/mes")
+def mes_home():
+    return FileResponse(WEB_DIR / "mes" / "mes.html")

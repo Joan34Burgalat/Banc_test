@@ -1,0 +1,46 @@
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #101820;
+    color: white;
+}
+
+header {
+    background: #202b38;
+    padding: 20px;
+    text-align: center;
+}
+
+header h1 {
+    color: #45b8ed;
+}
+
+main {
+    padding: 25px;
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+button, select {
+    padding: 10px;
+    cursor: pointer;
+}
+
+.oscilloscope {
+    background: #1d2835;
+    padding: 20px;
+    border-radius: 10px;
+    height: 450px;
+}
+
+.oscilloscope canvas {
+    width: 100% !important;
+    height: 380px !important;
+}
