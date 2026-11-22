@@ -82,7 +82,8 @@ connect.addEventListener("click", () => {
     ws.onmessage = (event) => {
 
         const data = JSON.parse(event.data);
-
+        // Calculer les mesures sur le bloc reçu
+        calculateMeasurements(data.voltage);
         // Conversion des secondes en millisecondes
         const points = data.time.map((t, i) => ({
             x: t * 1000,
@@ -122,3 +123,37 @@ disconnect.addEventListener("click", () => {
         ws.close(1000, "Déconnexion utilisateur");
     }
 });
+
+
+function calculateMeasurements(voltage) {
+
+    const n = voltage.length;
+
+    if (n === 0) {
+        return;
+    }
+
+    const vmin = Math.min(...voltage);
+    const vmax = Math.max(...voltage);
+
+    const vpp = vmax - vmin;
+
+    const sum = voltage.reduce(
+        (total, value) => total + value, 0
+    );
+
+    const mean = sum / n;
+
+    const sumSquares = voltage.reduce(
+        (total, value) => total + value ** 2, 0
+    );
+
+    const rms = Math.sqrt(sumSquares / n);
+
+    document.getElementById("vmin").textContent = vmin.toFixed(3);
+    document.getElementById("vmax").textContent = vmax.toFixed(3);
+    document.getElementById("vpp").textContent = vpp.toFixed(3);
+    document.getElementById("vmean").textContent = mean.toFixed(3);
+    document.getElementById("vrms").textContent = rms.toFixed(3);
+}
+
