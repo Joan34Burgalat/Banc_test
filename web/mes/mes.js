@@ -272,6 +272,24 @@ async function updateFFT(voltage) {
 
         const result = await response.json();
         console.log("FFT reçue :", result.frequencies.length);
+        const frequencies = result.frequencies;
+        const amplitudes = result.amplitudes;
+
+        // Résultats interpolés calculés par Python
+        const dominantFrequency = result.dominant_frequency;
+        const dominantAmplitude = result.dominant_amplitude;
+
+        // Résolution fréquentielle
+        const frequencyResolution = frequencies[1] - frequencies[0];
+        // Affichage des mesures
+        document.getElementById("dominantFrequency").textContent =
+        dominantFrequency.toFixed(3);
+
+        document.getElementById("dominantAmplitude").textContent =
+        dominantAmplitude.toFixed(3);
+
+        document.getElementById("frequencyResolution").textContent =
+        frequencyResolution.toFixed(2);
 
         // Construction des points du spectre
         const points = result.frequencies.map((frequency, i) => ({

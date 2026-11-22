@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 from fastapi import WebSocket, WebSocketDisconnect
 import asyncio
-from mes.signal_processing import compute_fft
+from mes.signal_processing import compute_fft, interpolate_fft_peak
 
 
 app = FastAPI(title="BANC_TEST - GEN API")
@@ -165,10 +165,16 @@ def calculate_fft(request: FFTRequest):
             request.sample_rate,
             request.window
         )
+        dominant_frequency, dominant_amplitude = interpolate_fft_peak(
+            frequencies,
+            amplitudes
+        )
 
         return {
             "frequencies": frequencies.tolist(),
-            "amplitudes": amplitudes.tolist()
+            "amplitudes": amplitudes.tolist(),
+            "dominant_frequency": float(dominant_frequency),
+            "dominant_amplitude": float(dominant_amplitude)
         }
 
     except ValueError as error:

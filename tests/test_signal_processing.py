@@ -1,7 +1,6 @@
 
 import numpy as np
-
-from mes.signal_processing import compute_fft
+from mes.signal_processing import compute_fft , interpolate_fft_peak
 
 
 # Paramètres du signal
@@ -69,3 +68,30 @@ index_3000 = np.argmin(np.abs(freq_rect - 3000))
 print("Amplitude à 3000 Hz (rectangulaire) :",amp_rect[index_3000])
 
 print("Amplitude à 3000 Hz (Hann) :",amp_hann[index_3000])
+
+# Génération d'un sinus de 1055 Hz
+fs = 100000
+N = 10000
+f_signal = 1055
+
+t = np.arange(N) / fs
+signal = 3 * np.sin(2 * np.pi * f_signal * t)
+
+# Application de la fenêtre Hann
+window = np.hanning(N)
+spectrum = np.abs(np.fft.rfft(signal * window))
+
+# Normalisation de l'amplitude
+spectrum *= 2 / np.sum(window)
+
+frequencies = np.fft.rfftfreq(N, 1 / fs)
+
+# Appel de notre fonction d'interpolation
+f_estimated, a_estimated = interpolate_fft_peak(
+    frequencies, spectrum
+)
+
+print("Fréquence réelle :", f_signal, "Hz")
+print("Fréquence estimée :", f_estimated, "Hz")
+print("Erreur fréquentielle :", abs(f_estimated - f_signal), "Hz")
+print("Amplitude interpolée :", a_estimated, "V")

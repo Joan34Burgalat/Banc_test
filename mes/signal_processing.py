@@ -59,3 +59,36 @@ def compute_fft(voltage, sample_rate, window="rectangular"):
         amplitudes[1:] *= 2
 
     return frequencies, amplitudes
+
+def interpolate_fft_peak(frequencies, amplitudes):
+
+    # Recherche du coefficient de plus grande amplitude
+    k = np.argmax(amplitudes)
+
+    # Impossible d'interpoler aux extrémités du spectre
+    if k == 0 or k == len(amplitudes) - 1:
+        return frequencies[k], amplitudes[k]
+
+    # Amplitudes des trois coefficients voisins
+    a = amplitudes[k - 1]
+    b = amplitudes[k]
+    c = amplitudes[k + 1]
+
+    # Interpolation parabolique
+    denominator = a - 2 * b + c
+
+    if abs(denominator) < 1e-12:
+        return frequencies[k], amplitudes[k]
+
+    delta = 0.5 * (a - c) / denominator
+
+    # Résolution fréquentielle
+    df = frequencies[1] - frequencies[0]
+
+    # Fréquence interpolée
+    frequency_estimated = frequencies[k] + delta * df
+
+    # Amplitude du sommet de la parabole
+    amplitude_estimated = b - 0.25 * (a - c) * delta
+
+    return frequency_estimated, amplitude_estimated

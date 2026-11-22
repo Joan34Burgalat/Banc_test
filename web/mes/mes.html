@@ -49,12 +49,14 @@
                 <option value="10000">10 000 échantillons — 10 Hz</option>
             </select>
 
+            
+
             <button id="connect">Connecter</button>
             <button id="disconnect" disabled>Déconnecter</button>
 
             <p id="status">Déconnecté</p>
             <p id="samples">Échantillons reçus : 0</p>
-            
+
         </section>
 
         <section class="oscilloscope">
@@ -69,13 +71,16 @@
 
         <section class="measurements">
             <h2>Mesures automatiques</h2>
-            <p>Vmax : <span id="vmax">--</span> V</p>
-            <p>Vmin : <span id="vmin">--</span> V</p>
-            <p>Moyenne : <span id="vmean">--</span> V</p>
-            <p>Vpp : <span id="vpp">--</span> V</p>
-            <p>RMS : <span id="vrms">--</span> V</p>
+            <p>Vmax : <span id="vmax">--</span> V </p>
+            <p>Vmin : <span id="vmin">--</span> V </p>
+            <p>Moyenne : <span id="vmean">--</span> V </p>
+            <p>Vpp : <span id="vpp">--</span> V </p>
+            <p>RMS : <span id="vrms">--</span> V </p>
+            <h2>Mesures spectrales</h2>
+            <p>Fréquence dominante : <span id="dominantFrequency">--</span> Hz </p>
+            <p>Amplitude dominante : <span id="dominantAmplitude">--</span> V </p>
+            <p>Résolution fréquentielle : <span id="frequencyResolution">--</span> Hz </p>
         </section>
-
     </main>
 
 </body>
